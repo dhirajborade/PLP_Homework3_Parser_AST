@@ -2,6 +2,16 @@ package cop5556fa17;
 
 import cop5556fa17.Scanner.Kind;
 import cop5556fa17.Scanner.Token;
+import cop5556fa17.AST.Declaration;
+import cop5556fa17.AST.Declaration_Variable;
+import cop5556fa17.AST.LHS;
+import cop5556fa17.AST.Program;
+import cop5556fa17.AST.Sink;
+import cop5556fa17.AST.Statement;
+import cop5556fa17.AST.Statement_Assign;
+import cop5556fa17.AST.Statement_In;
+import cop5556fa17.AST.Statement_Out;
+
 import static cop5556fa17.Scanner.Kind.*;
 
 public class Parser {
@@ -30,9 +40,10 @@ public class Parser {
 	 * 
 	 * @throws SyntaxException
 	 */
-	public void parse() throws SyntaxException {
-		program();
+	public Program parse() throws SyntaxException {
+		Program p = program();
 		matchEOF();
+		return p;
 	}
 
 	/**
@@ -42,7 +53,7 @@ public class Parser {
 	 * 
 	 * @throws SyntaxException
 	 */
-	void program() throws SyntaxException {
+	Program program() throws SyntaxException {
 		// TODO implement this
 
 		if (t.kind == IDENTIFIER) {
@@ -75,7 +86,7 @@ public class Parser {
 		}
 	}
 
-	void declaration() throws SyntaxException {
+	Declaration declaration() throws SyntaxException {
 		switch (t.kind) {
 		case KW_int:
 		case KW_boolean:
@@ -93,7 +104,7 @@ public class Parser {
 		}
 	}
 
-	void statement() throws SyntaxException {
+	Statement statement() throws SyntaxException {
 		if (t.kind == IDENTIFIER && scanner.peek().kind == OP_RARROW) {
 			imageOutStatement();
 		} else if (t.kind == IDENTIFIER && scanner.peek().kind == OP_LARROW) {
@@ -106,12 +117,12 @@ public class Parser {
 		}
 	}
 
-	void imageOutStatement() throws SyntaxException {
+	Statement_Out imageOutStatement() throws SyntaxException {
 		matchToken(IDENTIFIER, OP_RARROW);
 		sink();
 	}
 
-	void sink() throws SyntaxException {
+	Sink sink() throws SyntaxException {
 		switch (t.kind) {
 		case IDENTIFIER:
 			matchToken(IDENTIFIER);
@@ -124,18 +135,18 @@ public class Parser {
 		}
 	}
 
-	void imageInStatement() throws SyntaxException {
+	Statement_In imageInStatement() throws SyntaxException {
 		matchToken(IDENTIFIER, OP_LARROW);
 		source();
 	}
 
-	void assignmentStatement() throws SyntaxException {
+	Statement_Assign assignmentStatement() throws SyntaxException {
 		lhs();
 		matchToken(OP_ASSIGN);
 		expression();
 	}
 
-	void lhs() throws SyntaxException {
+	LHS lhs() throws SyntaxException {
 		matchToken(IDENTIFIER);
 		if (t.kind == LSQUARE) {
 			matchToken(LSQUARE);
@@ -162,7 +173,7 @@ public class Parser {
 		matchToken(KW_r, COMMA, KW_A);
 	}
 
-	void variableDeclaration() throws SyntaxException {
+	Declaration_Variable variableDeclaration() throws SyntaxException {
 		varType();
 		matchToken(IDENTIFIER);
 		if (t.kind == OP_ASSIGN) {
