@@ -8,6 +8,7 @@ import cop5556fa17.AST.Declaration_Image;
 import cop5556fa17.AST.Declaration_SourceSink;
 import cop5556fa17.AST.Declaration_Variable;
 import cop5556fa17.AST.Expression;
+import cop5556fa17.AST.Index;
 import cop5556fa17.AST.LHS;
 import cop5556fa17.AST.Program;
 import cop5556fa17.AST.Sink;
@@ -233,6 +234,8 @@ public class Parser {
 	}
 
 	LHS lhs() throws SyntaxException {
+		Token firstToken = t;
+		Token name = t;
 		matchToken(IDENTIFIER);
 		if (t.kind == LSQUARE) {
 			matchToken(LSQUARE);
@@ -251,15 +254,21 @@ public class Parser {
 		matchToken(RSQUARE);
 	}
 
-	void xySelector() throws SyntaxException {
+	Index xySelector() throws SyntaxException {
+		Token firstToken = t;
+		Expression e0 = null;
+		Expression e1 = null;
 		matchToken(KW_x, COMMA, KW_y);
+		return new Index(firstToken, e0, e1);
 	}
 
-	void raSelector() throws SyntaxException {
+	Index raSelector() throws SyntaxException {
+		Token firstToken = t;
+		Expression e0 = null;
+		Expression e1 = null;
 		matchToken(KW_r, COMMA, KW_A);
+		return new Index(firstToken, e0, e1);
 	}
-
-	
 
 	Token varType() throws SyntaxException {
 		Token type;
