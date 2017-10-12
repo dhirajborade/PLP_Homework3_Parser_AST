@@ -195,19 +195,34 @@ public class Parser {
 	}
 
 	Sink sink() throws SyntaxException {
-		Token firstToken;
+		Token firstToken = t;
 		switch (t.kind) {
 		case IDENTIFIER:
-			firstToken = t;
 			Token name = t;
 			matchToken(IDENTIFIER);
 			return new Sink_Ident(firstToken, name);
 		case KW_SCREEN:
-			firstToken = t;
 			matchToken(KW_SCREEN);
 			return new Sink_SCREEN(firstToken);
 		default:
 			throw new SyntaxException(t, "Illegal Sink");
+		}
+	}
+	
+	Source source() throws SyntaxException {
+		switch (t.kind) {
+		case STRING_LITERAL:
+			matchToken(STRING_LITERAL);
+			break;
+		case OP_AT:
+			matchToken(OP_AT);
+			expression();
+			break;
+		case IDENTIFIER:
+			matchToken(IDENTIFIER);
+			break;
+		default:
+			throw new SyntaxException(t, "Illegal Source");
 		}
 	}
 
@@ -269,23 +284,6 @@ public class Parser {
 			return firstToken;
 		default:
 			throw new SyntaxException(t, "Illegal Source Sink Type");
-		}
-	}
-
-	Source source() throws SyntaxException {
-		switch (t.kind) {
-		case STRING_LITERAL:
-			matchToken(STRING_LITERAL);
-			break;
-		case OP_AT:
-			matchToken(OP_AT);
-			expression();
-			break;
-		case IDENTIFIER:
-			matchToken(IDENTIFIER);
-			break;
-		default:
-			throw new SyntaxException(t, "Illegal Source");
 		}
 	}
 
