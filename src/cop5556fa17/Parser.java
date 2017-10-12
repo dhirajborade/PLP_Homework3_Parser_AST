@@ -2,17 +2,24 @@ package cop5556fa17;
 
 import cop5556fa17.Scanner.Kind;
 import cop5556fa17.Scanner.Token;
+import cop5556fa17.AST.ASTNode;
 import cop5556fa17.AST.Declaration;
 import cop5556fa17.AST.Declaration_Variable;
+import cop5556fa17.AST.Expression;
 import cop5556fa17.AST.LHS;
 import cop5556fa17.AST.Program;
 import cop5556fa17.AST.Sink;
+import cop5556fa17.AST.Sink_Ident;
+import cop5556fa17.AST.Sink_SCREEN;
+import cop5556fa17.AST.Source;
 import cop5556fa17.AST.Statement;
 import cop5556fa17.AST.Statement_Assign;
 import cop5556fa17.AST.Statement_In;
 import cop5556fa17.AST.Statement_Out;
 
 import static cop5556fa17.Scanner.Kind.*;
+
+import java.util.ArrayList;
 
 public class Parser {
 
@@ -55,17 +62,18 @@ public class Parser {
 	 */
 	Program program() throws SyntaxException {
 		// TODO implement this
-
+		ArrayList<ASTNode> decsAndStatements = new ArrayList<>();
+		Program p = null;
+		
 		if (t.kind == IDENTIFIER) {
-
+			Token firstToken = t;
 			matchToken(IDENTIFIER);
-
 			while (t.kind == KW_int || t.kind == KW_boolean || t.kind == KW_image || t.kind == KW_url
 					|| t.kind == KW_file || t.kind == IDENTIFIER) {
-
+				Token name = t;
 				if (t.kind == KW_int || t.kind == KW_boolean || t.kind == KW_image || t.kind == KW_url
 						|| t.kind == KW_file) {
-					declaration();
+					decsAndStatements.add(declaration());
 					if (t.kind == SEMI) {
 						matchToken(SEMI);
 					} else {
@@ -73,23 +81,28 @@ public class Parser {
 					}
 
 				} else if (t.kind == IDENTIFIER) {
-					statement();
+					decsAndStatements.add(statement());
 					if (t.kind == SEMI) {
 						matchToken(SEMI);
 					} else {
 						throw new SyntaxException(t, "Missing Semicolon");
 					}
 				}
+				p = new Program(firstToken, name, decsAndStatements);
 			}
 		} else {
 			throw new SyntaxException(t, "Illegal Start of Program");
 		}
+		return p;
 	}
 
 	Declaration declaration() throws SyntaxException {
+		Token firstToken;
+		Declaration dec = null;
 		switch (t.kind) {
 		case KW_int:
 		case KW_boolean:
+			firstToken = t;
 			variableDeclaration();
 			break;
 		case KW_image:
@@ -118,26 +131,38 @@ public class Parser {
 	}
 
 	Statement_Out imageOutStatement() throws SyntaxException {
-		matchToken(IDENTIFIER, OP_RARROW);
-		sink();
+		Token firstToken = t;
+		matchToken(IDENTIFIER);
+		Token name = t;
+		matchToken(OP_RARROW);
+		Sink sink = sink();
+		return new Statement_Out(firstToken, name, sink);
+	}
+	
+	Statement_In imageInStatement() throws SyntaxException {
+		Token firstToken = t;
+		matchToken(IDENTIFIER);
+		Token name = t;
+		matchToken(OP_LARROW);
+		Source source = source();
+		return new Statement_In(firstToken, name, source);
 	}
 
 	Sink sink() throws SyntaxException {
+		Token firstToken;
 		switch (t.kind) {
 		case IDENTIFIER:
+			firstToken = t;
+			Token name = t;
 			matchToken(IDENTIFIER);
-			break;
+			return new Sink_Ident(firstToken, name);
 		case KW_SCREEN:
+			firstToken = t;
 			matchToken(KW_SCREEN);
-			break;
+			return new Sink_SCREEN(firstToken);
 		default:
 			throw new SyntaxException(t, "Illegal Sink");
 		}
-	}
-
-	Statement_In imageInStatement() throws SyntaxException {
-		matchToken(IDENTIFIER, OP_LARROW);
-		source();
 	}
 
 	Statement_Assign assignmentStatement() throws SyntaxException {
@@ -178,7 +203,8 @@ public class Parser {
 		matchToken(IDENTIFIER);
 		if (t.kind == OP_ASSIGN) {
 			matchToken(OP_ASSIGN);
-			expression();
+			Expressionexpression();
+			return new Declaration_Variable(firstToken, type, name, e);
 		}
 	}
 
@@ -231,7 +257,7 @@ public class Parser {
 		}
 	}
 
-	void source() throws SyntaxException {
+	Source source() throws SyntaxException {
 		switch (t.kind) {
 		case STRING_LITERAL:
 			matchToken(STRING_LITERAL);
