@@ -236,22 +236,26 @@ public class Parser {
 	LHS lhs() throws SyntaxException {
 		Token firstToken = t;
 		Token name = t;
+		Index index = null;
 		matchToken(IDENTIFIER);
 		if (t.kind == LSQUARE) {
 			matchToken(LSQUARE);
-			lhsSelector();
+			index = lhsSelector();
 			matchToken(RSQUARE);
 		}
+		return new LHS(firstToken, name, index);
 	}
 
-	void lhsSelector() throws SyntaxException {
+	Index lhsSelector() throws SyntaxException {
+		Index index = null;
 		matchToken(LSQUARE);
 		if (t.kind == KW_x) {
-			xySelector();
+			index = xySelector();
 		} else if (t.kind == KW_r) {
-			raSelector();
+			index = raSelector();
 		}
 		matchToken(RSQUARE);
+		return index;
 	}
 
 	Index xySelector() throws SyntaxException {
