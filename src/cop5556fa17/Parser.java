@@ -10,6 +10,8 @@ import cop5556fa17.AST.Declaration_Variable;
 import cop5556fa17.AST.Expression;
 import cop5556fa17.AST.Expression_Binary;
 import cop5556fa17.AST.Expression_Conditional;
+import cop5556fa17.AST.Expression_PredefinedName;
+import cop5556fa17.AST.Expression_Unary;
 import cop5556fa17.AST.Index;
 import cop5556fa17.AST.LHS;
 import cop5556fa17.AST.Program;
@@ -380,28 +382,42 @@ public class Parser {
 	}
 
 	Expression_Binary andExpression() throws SyntaxException {
-		eqExpression();
+		Token firstToken = t;
+		Token op = null;
+		Expression e0 = eqExpression();
+		Expression e1 = null;
 		while (t.kind == OP_AND) {
+			op = t;
 			matchToken(OP_AND);
-			eqExpression();
+			e1 = eqExpression();
 		}
+		return new Expression_Binary(firstToken, e0, op, e1);
 	}
 
 	Expression_Binary eqExpression() throws SyntaxException {
-		relExpression();
+		Token firstToken = t;
+		Token op = null;
+		Expression e0 = relExpression();
+		Expression e1 = null;
 		while (t.kind == OP_EQ || t.kind == OP_NEQ) {
+			op = t;
 			if (t.kind == OP_EQ) {
 				matchToken(OP_EQ);
 			} else if (t.kind == OP_NEQ) {
 				matchToken(OP_NEQ);
 			}
-			relExpression();
+			e1 = relExpression();
 		}
+		return new Expression_Binary(firstToken, e0, op, e1);
 	}
 
 	Expression_Binary relExpression() throws SyntaxException {
-		addExpression();
+		Token firstToken = t;
+		Token op = null;
+		Expression e0 = addExpression();
+		Expression e1 = null;
 		while (t.kind == OP_LT || t.kind == OP_GT || t.kind == OP_LE || t.kind == OP_GE) {
+			op = t;
 			switch (t.kind) {
 			case OP_LT:
 				matchToken(OP_LT);
@@ -418,13 +434,18 @@ public class Parser {
 			default:
 				throw new SyntaxException(t, "Illegal Compare Expression");
 			}
-			addExpression();
+			e1 = addExpression();
 		}
+		return new Expression_Binary(firstToken, e0, op, e1);
 	}
 
 	Expression_Binary addExpression() throws SyntaxException {
-		multExpression();
+		Token firstToken = t;
+		Token op = null;
+		Expression e0 = multExpression();
+		Expression e1 = null;
 		while (t.kind == OP_PLUS || t.kind == OP_MINUS) {
+			op = t;
 			switch (t.kind) {
 			case OP_PLUS:
 				matchToken(OP_PLUS);
@@ -435,13 +456,18 @@ public class Parser {
 			default:
 				throw new SyntaxException(t, "Illegal Add/Subtract Expression");
 			}
-			multExpression();
+			e1 = multExpression();
 		}
+		return new Expression_Binary(firstToken, e0, op, e1);
 	}
 
 	Expression_Binary multExpression() throws SyntaxException {
-		unaryExpression();
+		Token firstToken = t;
+		Token op = null;
+		Expression e0 = unaryExpression();
+		Expression e1 = null;
 		while (t.kind == OP_TIMES || t.kind == OP_DIV || t.kind == OP_MOD) {
+			op = t;
 			switch (t.kind) {
 			case OP_TIMES:
 				matchToken(OP_TIMES);
@@ -455,19 +481,23 @@ public class Parser {
 			default:
 				throw new SyntaxException(t, "Illegal Multiplication Expression");
 			}
-			unaryExpression();
+			e1 = unaryExpression();
 		}
+		return new Expression_Binary(firstToken, e0, op, e1);
 	}
 
-	void unaryExpression() throws SyntaxException {
+	Expression_Unary unaryExpression() throws SyntaxException {
+		Token firstToken = t;
+		Token op = t;
+		Expression e = null;
 		switch (t.kind) {
 		case OP_PLUS:
 			matchToken(OP_PLUS);
-			unaryExpression();
+			e = unaryExpression();
 			break;
 		case OP_MINUS:
 			matchToken(OP_MINUS);
-			unaryExpression();
+			e = unaryExpression();
 			break;
 		case OP_EXCL:
 		case INTEGER_LITERAL:
@@ -493,19 +523,24 @@ public class Parser {
 		case KW_DEF_X:
 		case KW_DEF_Y:
 		case BOOLEAN_LITERAL:
-			unaryExpressionNotPlusMinus();
+			e = unaryExpressionNotPlusMinus();
 			break;
 		default:
 			throw new SyntaxException(t, "Illegal Unary Expression");
 		}
+		return new Expression_Unary(firstToken, op, e);
 	}
 
-	void unaryExpressionNotPlusMinus() throws SyntaxException {
+	Expression unaryExpressionNotPlusMinus() throws SyntaxException {
+		Token firstToken = t;
+		Token op = t;
+		Kind kind = t.kind;
+		Expression e = null;
 		switch (t.kind) {
 		case OP_EXCL:
 			matchToken(OP_EXCL);
-			unaryExpression();
-			break;
+			e = unaryExpression();
+			return new Expression_Unary(firstToken, op, e);
 		case INTEGER_LITERAL:
 		case LPAREN:
 		case KW_sin:
@@ -517,44 +552,44 @@ public class Parser {
 		case KW_polar_a:
 		case KW_polar_r:
 		case BOOLEAN_LITERAL:
-			primary();
+			e = primary();
 			break;
 		case IDENTIFIER:
-			identOrPixelSelectorExpression();
+			e = identOrPixelSelectorExpression();
 			break;
 		case KW_x:
 			matchToken(KW_x);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_y:
 			matchToken(KW_y);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_r:
 			matchToken(KW_r);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_a:
 			matchToken(KW_a);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_X:
 			matchToken(KW_X);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_Y:
 			matchToken(KW_Y);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_Z:
 			matchToken(KW_Z);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_A:
 			matchToken(KW_A);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_R:
 			matchToken(KW_R);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_DEF_X:
 			matchToken(KW_DEF_X);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		case KW_DEF_Y:
 			matchToken(KW_DEF_Y);
-			break;
+			return new Expression_PredefinedName(firstToken, kind);
 		default:
 			throw new SyntaxException(t, "Illegal Unary Expression");
 		}
