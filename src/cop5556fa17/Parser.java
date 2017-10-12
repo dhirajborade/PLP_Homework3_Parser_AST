@@ -14,6 +14,9 @@ import cop5556fa17.AST.Sink;
 import cop5556fa17.AST.Sink_Ident;
 import cop5556fa17.AST.Sink_SCREEN;
 import cop5556fa17.AST.Source;
+import cop5556fa17.AST.Source_CommandLineParam;
+import cop5556fa17.AST.Source_Ident;
+import cop5556fa17.AST.Source_StringLiteral;
 import cop5556fa17.AST.Statement;
 import cop5556fa17.AST.Statement_Assign;
 import cop5556fa17.AST.Statement_In;
@@ -210,17 +213,20 @@ public class Parser {
 	}
 	
 	Source source() throws SyntaxException {
+		Token firstToken = t;
 		switch (t.kind) {
 		case STRING_LITERAL:
+			String fileOrUrl = t.getText();
 			matchToken(STRING_LITERAL);
-			break;
+			return new Source_StringLiteral(firstToken, fileOrUrl);
 		case OP_AT:
 			matchToken(OP_AT);
-			expression();
-			break;
+			Expression paramNum = expression();
+			return new Source_CommandLineParam(firstToken, paramNum);
 		case IDENTIFIER:
+			Token name = t;
 			matchToken(IDENTIFIER);
-			break;
+			return new Source_Ident(firstToken, name);
 		default:
 			throw new SyntaxException(t, "Illegal Source");
 		}
