@@ -8,6 +8,8 @@ import cop5556fa17.AST.Declaration_Image;
 import cop5556fa17.AST.Declaration_SourceSink;
 import cop5556fa17.AST.Declaration_Variable;
 import cop5556fa17.AST.Expression;
+import cop5556fa17.AST.Expression_Binary;
+import cop5556fa17.AST.Expression_Conditional;
 import cop5556fa17.AST.Index;
 import cop5556fa17.AST.LHS;
 import cop5556fa17.AST.Program;
@@ -71,7 +73,7 @@ public class Parser {
 		ArrayList<ASTNode> decsAndStatements = new ArrayList<>();
 		Program p = null;
 		Token firstToken = t;
-		
+
 		if (t.kind == IDENTIFIER) {
 			Token name = t;
 			matchToken(IDENTIFIER);
@@ -116,7 +118,7 @@ public class Parser {
 			throw new SyntaxException(t, "Illegal Declaration");
 		}
 	}
-	
+
 	Declaration_Variable variableDeclaration() throws SyntaxException {
 		Token firstToken = t;
 		Token type = varType();
@@ -129,7 +131,7 @@ public class Parser {
 		}
 		return new Declaration_Variable(firstToken, type, name, e);
 	}
-	
+
 	Declaration_Image imageDeclaration() throws SyntaxException {
 		Token firstToken = t;
 		Source source = null;
@@ -151,7 +153,7 @@ public class Parser {
 		}
 		return new Declaration_Image(firstToken, xSize, ySize, name, source);
 	}
-	
+
 	Declaration_SourceSink sourceSinkDeclaration() throws SyntaxException {
 		Token firstToken = t;
 		Token type = sourceSinkType();
@@ -181,7 +183,7 @@ public class Parser {
 		Sink sink = sink();
 		return new Statement_Out(firstToken, name, sink);
 	}
-	
+
 	Statement_In imageInStatement() throws SyntaxException {
 		Token firstToken = t;
 		Token name = t;
@@ -189,7 +191,7 @@ public class Parser {
 		Source source = source();
 		return new Statement_In(firstToken, name, source);
 	}
-	
+
 	Statement_Assign assignmentStatement() throws SyntaxException {
 		Token firstToken = t;
 		LHS lhs = lhs();
@@ -212,7 +214,7 @@ public class Parser {
 			throw new SyntaxException(t, "Illegal Sink");
 		}
 	}
-	
+
 	Source source() throws SyntaxException {
 		Token firstToken = t;
 		switch (t.kind) {
@@ -291,16 +293,16 @@ public class Parser {
 	}
 
 	Token sourceSinkType() throws SyntaxException {
-		Token firstToken;
+		Token type;
 		switch (t.kind) {
 		case KW_url:
-			firstToken = t;
+			type = t;
 			matchToken(KW_url);
-			return firstToken;
+			return type;
 		case KW_file:
-			firstToken = t;
+			type = t;
 			matchToken(KW_file);
-			return firstToken;
+			return type;
 		default:
 			throw new SyntaxException(t, "Illegal Source Sink Type");
 		}
@@ -318,6 +320,12 @@ public class Parser {
 	 */
 	Expression expression() throws SyntaxException {
 		// TODO implement this.
+		
+		Token firstToken = t;
+		Expression condition = null;
+		Expression trueExpression = null;
+		Expression falseExpression = null;
+		
 		switch (t.kind) {
 		case OP_PLUS:
 		case OP_MINUS:
@@ -345,28 +353,33 @@ public class Parser {
 		case KW_DEF_X:
 		case KW_DEF_Y:
 		case BOOLEAN_LITERAL:
-			orExpression();
+			condition = orExpression();
 			if (t.kind == OP_Q) {
 				matchToken(OP_Q);
-				expression();
+				trueExpression = expression();
 				matchToken(OP_COLON);
-				expression();
+				falseExpression = expression();
 			}
-			break;
+			return new Expression_Conditional(firstToken, condition, trueExpression, falseExpression);
 		default:
 			throw new SyntaxException(t, "Illegal Start of Expression");
 		}
 	}
 
-	void orExpression() throws SyntaxException {
-		andExpression();
+	Expression_Binary orExpression() throws SyntaxException {
+		Token firstToken = t;
+		Token op = null;
+		Expression e0 = andExpression();
+		Expression e1 = null;
 		while (t.kind == OP_OR) {
+			op = t;
 			matchToken(OP_OR);
-			andExpression();
+			e1 = andExpression();
 		}
+		return new Expression_Binary(firstToken, e0, op, e1);
 	}
 
-	void andExpression() throws SyntaxException {
+	Expression_Binary andExpression() throws SyntaxException {
 		eqExpression();
 		while (t.kind == OP_AND) {
 			matchToken(OP_AND);
@@ -374,7 +387,7 @@ public class Parser {
 		}
 	}
 
-	void eqExpression() throws SyntaxException {
+	Expression_Binary eqExpression() throws SyntaxException {
 		relExpression();
 		while (t.kind == OP_EQ || t.kind == OP_NEQ) {
 			if (t.kind == OP_EQ) {
@@ -386,7 +399,7 @@ public class Parser {
 		}
 	}
 
-	void relExpression() throws SyntaxException {
+	Expression_Binary relExpression() throws SyntaxException {
 		addExpression();
 		while (t.kind == OP_LT || t.kind == OP_GT || t.kind == OP_LE || t.kind == OP_GE) {
 			switch (t.kind) {
@@ -409,7 +422,7 @@ public class Parser {
 		}
 	}
 
-	void addExpression() throws SyntaxException {
+	Expression_Binary addExpression() throws SyntaxException {
 		multExpression();
 		while (t.kind == OP_PLUS || t.kind == OP_MINUS) {
 			switch (t.kind) {
@@ -426,7 +439,7 @@ public class Parser {
 		}
 	}
 
-	void multExpression() throws SyntaxException {
+	Expression_Binary multExpression() throws SyntaxException {
 		unaryExpression();
 		while (t.kind == OP_TIMES || t.kind == OP_DIV || t.kind == OP_MOD) {
 			switch (t.kind) {
