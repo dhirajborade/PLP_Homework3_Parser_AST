@@ -66,13 +66,13 @@ public class Parser {
 		// TODO implement this
 		ArrayList<ASTNode> decsAndStatements = new ArrayList<>();
 		Program p = null;
+		Token firstToken = t;
 		
 		if (t.kind == IDENTIFIER) {
-			Token firstToken = t;
+			Token name = t;
 			matchToken(IDENTIFIER);
 			while (t.kind == KW_int || t.kind == KW_boolean || t.kind == KW_image || t.kind == KW_url
 					|| t.kind == KW_file || t.kind == IDENTIFIER) {
-				Token name = t;
 				if (t.kind == KW_int || t.kind == KW_boolean || t.kind == KW_image || t.kind == KW_url
 						|| t.kind == KW_file) {
 					decsAndStatements.add(declaration());
@@ -114,13 +114,12 @@ public class Parser {
 	}
 	
 	Declaration_Variable variableDeclaration() throws SyntaxException {
-		Token firstToken = varType();
-		Token type = t;
-		Token name = null;
+		Token firstToken = t;
+		Token type = varType();
+		Token name = t;
 		Expression e = null;
 		matchToken(IDENTIFIER);
 		if (t.kind == OP_ASSIGN) {
-			name = t;
 			matchToken(OP_ASSIGN);
 			e = expression();
 		}
@@ -128,28 +127,32 @@ public class Parser {
 	}
 	
 	Declaration_Image imageDeclaration() throws SyntaxException {
+		Token firstToken = t;
+		Source source = null;
+		Expression xSize = null;
+		Expression ySize = null;
 		matchToken(KW_image);
 		if (t.kind == LSQUARE) {
 			matchToken(LSQUARE);
-			expression();
+			xSize = expression();
 			matchToken(COMMA);
-			expression();
+			ySize = expression();
 			matchToken(RSQUARE);
 		}
+		Token name = t;
 		matchToken(IDENTIFIER);
 		if (t.kind == OP_LARROW) {
 			matchToken(OP_LARROW);
-			source();
+			source = source();
 		}
-
+		return new Declaration_Image(firstToken, xSize, ySize, name, source);
 	}
 	
 	Declaration_SourceSink sourceSinkDeclaration() throws SyntaxException {
-		Token firstToken = sourceSinkType();
-		Token type = t;
-		matchToken(IDENTIFIER);
+		Token firstToken = t;
+		Token type = sourceSinkType();
 		Token name = t;
-		matchToken(OP_ASSIGN);
+		matchToken(IDENTIFIER, OP_ASSIGN);
 		Source source = source();
 		return new Declaration_SourceSink(firstToken, type, name, source);
 	}
@@ -169,20 +172,26 @@ public class Parser {
 
 	Statement_Out imageOutStatement() throws SyntaxException {
 		Token firstToken = t;
-		matchToken(IDENTIFIER);
 		Token name = t;
-		matchToken(OP_RARROW);
+		matchToken(IDENTIFIER, OP_RARROW);
 		Sink sink = sink();
 		return new Statement_Out(firstToken, name, sink);
 	}
 	
 	Statement_In imageInStatement() throws SyntaxException {
 		Token firstToken = t;
-		matchToken(IDENTIFIER);
 		Token name = t;
-		matchToken(OP_LARROW);
+		matchToken(IDENTIFIER, OP_LARROW);
 		Source source = source();
 		return new Statement_In(firstToken, name, source);
+	}
+	
+	Statement_Assign assignmentStatement() throws SyntaxException {
+		Token firstToken = t;
+		LHS lhs = lhs();
+		matchToken(OP_ASSIGN);
+		Expression e = expression();
+		return new Statement_Assign(firstToken, lhs, e);
 	}
 
 	Sink sink() throws SyntaxException {
@@ -200,12 +209,6 @@ public class Parser {
 		default:
 			throw new SyntaxException(t, "Illegal Sink");
 		}
-	}
-
-	Statement_Assign assignmentStatement() throws SyntaxException {
-		lhs();
-		matchToken(OP_ASSIGN);
-		expression();
 	}
 
 	LHS lhs() throws SyntaxException {
@@ -238,16 +241,16 @@ public class Parser {
 	
 
 	Token varType() throws SyntaxException {
-		Token firstToken;
+		Token type;
 		switch (t.kind) {
 		case KW_boolean:
-			firstToken = t;
+			type = t;
 			matchToken(KW_boolean);
-			return firstToken;
+			return type;
 		case KW_int:
-			firstToken = t;
+			type = t;
 			matchToken(KW_int);
-			return firstToken;
+			return type;
 		default:
 			throw new SyntaxException(t, "Illegal varType");
 		}
