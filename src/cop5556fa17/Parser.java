@@ -9,11 +9,14 @@ import cop5556fa17.AST.Declaration_SourceSink;
 import cop5556fa17.AST.Declaration_Variable;
 import cop5556fa17.AST.Expression;
 import cop5556fa17.AST.Expression_Binary;
+import cop5556fa17.AST.Expression_BooleanLit;
 import cop5556fa17.AST.Expression_Conditional;
 import cop5556fa17.AST.Expression_FunctionApp;
 import cop5556fa17.AST.Expression_FunctionAppWithExprArg;
 import cop5556fa17.AST.Expression_FunctionAppWithIndexArg;
+import cop5556fa17.AST.Expression_Ident;
 import cop5556fa17.AST.Expression_IntLit;
+import cop5556fa17.AST.Expression_PixelSelector;
 import cop5556fa17.AST.Expression_PredefinedName;
 import cop5556fa17.AST.Expression_Unary;
 import cop5556fa17.AST.Index;
@@ -77,11 +80,10 @@ public class Parser {
 	Program program() throws SyntaxException {
 		// TODO implement this
 		ArrayList<ASTNode> decsAndStatements = new ArrayList<>();
-		Program p = null;
 		Token firstToken = t;
+		Token name = t;
 
 		if (t.kind == IDENTIFIER) {
-			Token name = t;
 			matchToken(IDENTIFIER);
 			while (t.kind == KW_int || t.kind == KW_boolean || t.kind == KW_image || t.kind == KW_url
 					|| t.kind == KW_file || t.kind == IDENTIFIER) {
@@ -102,12 +104,11 @@ public class Parser {
 						throw new SyntaxException(t, "Missing Semicolon");
 					}
 				}
-				p = new Program(firstToken, name, decsAndStatements);
 			}
 		} else {
 			throw new SyntaxException(t, "Illegal Start of Program");
 		}
-		return p;
+		return new Program(firstToken, name, decsAndStatements);
 	}
 
 	Declaration declaration() throws SyntaxException {
@@ -268,17 +269,25 @@ public class Parser {
 
 	Index xySelector() throws SyntaxException {
 		Token firstToken = t;
-		Expression e0 = null;
-		Expression e1 = null;
-		matchToken(KW_x, COMMA, KW_y);
+		Kind kind = t.kind;
+		Expression e0 = new Expression_PredefinedName(firstToken, kind);
+		matchToken(KW_x, COMMA);
+		firstToken = t;
+		kind = t.kind;
+		Expression e1 = new Expression_PredefinedName(firstToken, kind);
+		matchToken(KW_y);
 		return new Index(firstToken, e0, e1);
 	}
 
 	Index raSelector() throws SyntaxException {
 		Token firstToken = t;
-		Expression e0 = null;
-		Expression e1 = null;
-		matchToken(KW_r, COMMA, KW_A);
+		Kind kind = t.kind;
+		Expression e0 = new Expression_PredefinedName(firstToken, kind);
+		matchToken(KW_r, COMMA);
+		firstToken = t;
+		kind = t.kind;
+		Expression e1 = new Expression_PredefinedName(firstToken, kind);
+		matchToken(KW_A);
 		return new Index(firstToken, e0, e1);
 	}
 
@@ -365,8 +374,9 @@ public class Parser {
 				trueExpression = expression();
 				matchToken(OP_COLON);
 				falseExpression = expression();
+				return new Expression_Conditional(firstToken, condition, trueExpression, falseExpression);
 			}
-			return new Expression_Conditional(firstToken, condition, trueExpression, falseExpression);
+			return condition;
 		default:
 			throw new SyntaxException(t, "Illegal Start of Expression");
 		}
@@ -381,7 +391,7 @@ public class Parser {
 			op = t;
 			matchToken(OP_OR);
 			e1 = andExpression();
-			return new Expression_Binary(firstToken, e0, op, e1);
+			e0 = new Expression_Binary(firstToken, e0, op, e1);
 		}
 		return e0;
 	}
@@ -395,7 +405,7 @@ public class Parser {
 			op = t;
 			matchToken(OP_AND);
 			e1 = eqExpression();
-			return new Expression_Binary(firstToken, e0, op, e1);
+			e0 = new Expression_Binary(firstToken, e0, op, e1);
 		}
 		return e0;
 	}
@@ -413,7 +423,7 @@ public class Parser {
 				matchToken(OP_NEQ);
 			}
 			e1 = relExpression();
-			return new Expression_Binary(firstToken, e0, op, e1);
+			e0 = new Expression_Binary(firstToken, e0, op, e1);
 		}
 		return e0;
 	}
@@ -442,7 +452,7 @@ public class Parser {
 				throw new SyntaxException(t, "Illegal Compare Expression");
 			}
 			e1 = addExpression();
-			return new Expression_Binary(firstToken, e0, op, e1);
+			e0 = new Expression_Binary(firstToken, e0, op, e1);
 		}
 		return e0;
 	}
@@ -465,7 +475,7 @@ public class Parser {
 				throw new SyntaxException(t, "Illegal Add/Subtract Expression");
 			}
 			e1 = multExpression();
-			return new Expression_Binary(firstToken, e0, op, e1);
+			e0 = new Expression_Binary(firstToken, e0, op, e1);
 		}
 		return e0;
 	}
@@ -491,12 +501,12 @@ public class Parser {
 				throw new SyntaxException(t, "Illegal Multiplication Expression");
 			}
 			e1 = unaryExpression();
-			return new Expression_Binary(firstToken, e0, op, e1);
+			e0 = new Expression_Binary(firstToken, e0, op, e1);
 		}
 		return e0;
 	}
 
-	Expression_Unary unaryExpression() throws SyntaxException {
+	Expression unaryExpression() throws SyntaxException {
 		Token firstToken = t;
 		Token op = t;
 		Expression e = null;
@@ -504,11 +514,11 @@ public class Parser {
 		case OP_PLUS:
 			matchToken(OP_PLUS);
 			e = unaryExpression();
-			break;
+			return new Expression_Unary(firstToken, op, e);
 		case OP_MINUS:
 			matchToken(OP_MINUS);
 			e = unaryExpression();
-			break;
+			return new Expression_Unary(firstToken, op, e);
 		case OP_EXCL:
 		case INTEGER_LITERAL:
 		case LPAREN:
@@ -533,12 +543,10 @@ public class Parser {
 		case KW_DEF_X:
 		case KW_DEF_Y:
 		case BOOLEAN_LITERAL:
-			e = unaryExpressionNotPlusMinus();
-			break;
+			return unaryExpressionNotPlusMinus();
 		default:
 			throw new SyntaxException(t, "Illegal Unary Expression");
 		}
-		return new Expression_Unary(firstToken, op, e);
 	}
 
 	Expression unaryExpressionNotPlusMinus() throws SyntaxException {
@@ -608,14 +616,14 @@ public class Parser {
 		Expression e = null;
 		switch (t.kind) {
 		case INTEGER_LITERAL:
-			int value = t.intVal();
+			int intValue = t.intVal();
 			matchToken(INTEGER_LITERAL);
-			return new Expression_IntLit(firstToken, value);
+			return new Expression_IntLit(firstToken, intValue);
 		case LPAREN:
 			matchToken(LPAREN);
-			expression();
+			e = expression();
 			matchToken(RPAREN);
-			break;
+			return e;
 		case KW_sin:
 		case KW_cos:
 		case KW_atan:
@@ -626,20 +634,26 @@ public class Parser {
 		case KW_polar_r:
 			return functionApplication();
 		case BOOLEAN_LITERAL:
+			boolean boolValue = t.getText().equals("true") ? true : false;
 			matchToken(BOOLEAN_LITERAL);
-			break;
+			return new Expression_BooleanLit(firstToken, boolValue);
 		default:
 			throw new SyntaxException(t, "Illegal Primary Expression");
 		}
 	}
 
-	void identOrPixelSelectorExpression() throws SyntaxException {
+	Expression identOrPixelSelectorExpression() throws SyntaxException {
+		Token firstToken = t;
+		Token name = t;
+		Token ident = t;
 		matchToken(IDENTIFIER);
 		if (t.kind == LSQUARE) {
 			matchToken(LSQUARE);
-			selector();
+			Index index = selector();
 			matchToken(RSQUARE);
+			return new Expression_PixelSelector(firstToken, name, index);
 		}
+		return new Expression_Ident(firstToken, ident);
 	}
 
 	Expression_FunctionApp functionApplication() throws SyntaxException {
