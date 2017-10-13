@@ -13,7 +13,7 @@ import cop5556fa17.Parser.SyntaxException;
 
 import static cop5556fa17.Scanner.Kind.*;
 
-public class ParserTestNik {
+public class ParserTestNikita {
 
 	// set Junit to be able to catch exceptions
 	@Rule
